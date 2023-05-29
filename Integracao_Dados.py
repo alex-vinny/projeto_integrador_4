@@ -210,19 +210,16 @@ EXEC usp_get_stockdata @stock_id = :stock_id, @initDate = :initDate, @endDate = 
     with engine.begin() as conn:
         result = conn.execute(
             db.text(query), 
-            stock_id=stock_id, 
-            initDate=init_date, 
-            endDate=end_date)
+            dict(stock_id=stock_id, initDate=init_date,endDate=end_date))
         for row in result:
-            stock = StockData(s, row['stock_date'])
-            stock.id = row['id']
-            stock.adj = row['adjclose_value']
-            stock.open = row['open_value']
-            stock.high = row['high_value']
-            stock.low = row['low_value']
-            stock.close = row['close_value']
-            stock.adj = row['adjclose_value']
-            stock.volume = row['volume_value']
+            stock = StockData(s, row[2]) #['stock_date'])
+            stock.id = row[0] #['id']            
+            stock.open = row[3]#['open_value']
+            stock.high = row[4]#['high_value']
+            stock.low = row[5]#['low_value']
+            stock.close = row[6]#['close_value']
+            stock.adj = row[7]#['adjclose_value']
+            stock.volume = row[8]#['volume_value']
             data.append(stock)
     return  data
 
@@ -379,24 +376,21 @@ def month_year_iter(start_month, start_year, end_month, end_year ):
             continue
 
 """ Função principal que executa o cálculo """
-def process_calculation(init_month, init_year, end_month, end_year):
+def process_calculation(init:date, end:date):
     print('Starting')
-    stocks = get_stocks(get_session())    
+    stocks = get_stocks(get_session())
     for stock in stocks:
-        print(stock.code)
-        for year,month in month_year_iter(init_month, init_year, end_month, end_year):
-            if year == datetime.now().year and month > datetime.now().month:
-                break
+        print(stock.code)        
+        #if init.year == datetime.now().year and month > datetime.now().month:
+        #    break
+        item=dict(stock_id=stock.id, data_init=init, data_end=end)
 
-            init=date(year, month, 1)
-            end=date(year, month + 11, 1)
-            item=dict(stock_id=stock.id, data_init=init, data_end=end)
-            
-            get_or_add_calculation(
-                convert_calculated_to_model(
-                    calculate(
-                        get_stockdata(get_session(), item))))
+        get_or_add_calculation(
+            convert_calculated_to_model(
+                calculate(
+                    get_stockdata(get_session(), item))))
     print('Finished')
 
 #[m for m in month_year_iter(1, 2000, 12, 2023)]
-process_calculation(1, 2000, 12, 2023)
+process_calculation(date(2023, 5, 1), date(2023, 6, 1))
+
